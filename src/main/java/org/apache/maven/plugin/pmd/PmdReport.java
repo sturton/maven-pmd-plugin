@@ -55,6 +55,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.MalformedURLException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +64,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import net.sourceforge.pmd.PMDException;
 
 /**
  * Creates a PMD report.
@@ -130,6 +135,16 @@ public class PmdReport
      */
     @Parameter( property = "pmd.typeResolution", defaultValue = "false" )
     private boolean typeResolution;
+
+    /**
+     * Optional {@link URI} to retrieve source objects from.
+     * <p>
+     * <b>Note:</b> Currently only {@link DBURI} is supported.
+     * </p>
+     * @since 3.0.2
+     */
+    @Parameter
+    private String uri;
 
     /**
      */
@@ -282,6 +297,19 @@ public class PmdReport
         {
             dataSources.add( new FileDataSource( f ) );
         }
+
+	//Add Data Sources 
+	if (null != uri && !"".equals(uri))
+	{
+		try 
+		{
+		    dataSources.addAll(PMD.getURIDataSources(uri));
+		}
+		catch(PMDException pmdE)
+		{
+		    throw new MavenReportException( "Can't get datasources from uri - \""+uri+"\"", pmdE );
+		}
+	}
 
         try
         {

@@ -128,9 +128,21 @@ public abstract class AbstractPmdReport
 
     /**
      * The directories containing the sources to be compiled.
+     * <p>Defaults to {@link project.compileSourceRoots}.
+     * </p>
      */
-    @Parameter( property = "project.compileSourceRoots", required = true, readonly = true )
+    @Parameter
     private List<String> compileSourceRoots;
+
+    /**
+     * The directories containing the sources to be interpreted.
+     * <p>Defaults to {@link project.scriptSourceRoots}.
+     * </p>
+     *
+     * @since 3.0.2
+     */
+    @Parameter
+    private List<String> scriptSourceRoots;
 
     /**
      * The directories containing the test-sources to be compiled.
@@ -286,10 +298,34 @@ public abstract class AbstractPmdReport
 
         List<PmdFileInfo> directories = new ArrayList<PmdFileInfo>();
 
+	//Default to Project CompileSourceRoots if no Plug-in specific settings are defined  
+        if ( null == compileSourceRoots )
+	{
+	  compileSourceRoots = project.getCompileSourceRoots();
+	}
+
         if ( compileSourceRoots != null )
         {
 
             for ( String root : compileSourceRoots )
+            {
+                File sroot = new File( root );
+                directories.add( new PmdFileInfo( project, sroot, sourceXref ) );
+            }
+
+        }
+
+	//Default to Project ScriptSourceRoots if no Plug-in specific settings are defined  
+        if ( null == scriptSourceRoots )
+	{
+	  scriptSourceRoots = project.getScriptSourceRoots();
+	}
+
+	//Add any scripts to be processed (Ruby,PLSQL) 
+        if ( scriptSourceRoots != null )
+        {
+
+            for ( String root : scriptSourceRoots )
             {
                 File sroot = new File( root );
                 directories.add( new PmdFileInfo( project, sroot, sourceXref ) );

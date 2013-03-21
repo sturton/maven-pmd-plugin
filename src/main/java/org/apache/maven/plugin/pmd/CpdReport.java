@@ -41,10 +41,15 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.URISyntaxException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import net.sourceforge.pmd.cpd.SourceCode;
+import net.sourceforge.pmd.util.database.DBURI;
 
 /**
  * Creates a report for PMD's CPD tool.  See
@@ -91,6 +96,40 @@ public class CpdReport
      */
     @Parameter( property = "cpd.ignoreIdentifiers", defaultValue = "false" )
     private boolean ignoreIdentifiers;
+
+    /**
+     * Similar to <code>ignoreLiterals</code> but for language annotations; e.g. @Override.
+     *
+     * @since 3.0.2
+     */
+    @Parameter( property = "cpd.ignoreAnnotations", defaultValue = "false" )
+    private boolean ignoreAnnotations;
+
+    /**
+     * Ignore multiple copies of files of the same name and length in comparison.
+     *
+     * @since 3.0.2
+     */
+    @Parameter( property = "cpd.skipDuplicates", defaultValue = "false" )
+    private boolean skipDuplicates;
+
+    /**
+     * Source Language 
+     *
+     * @since 3.0.2
+     */
+    @Parameter( property = "cpd.language", defaultValue = "java" )
+    private String language = "java" ;
+
+    /**
+     * Optionally retrieve source code from {@link URI}.
+     * <p>Currently only {@link DBURI} is supported
+     * </p>
+     *
+     * @since 3.0.2
+     */
+    @Parameter( property = "cpd.uri")
+    private String uri;
 
     /**
      * {@inheritDoc}
@@ -173,11 +212,21 @@ public class CpdReport
             files = getFilesToProcess();
             String encoding = determineEncoding( !files.isEmpty() );
 
-            CPDConfiguration cpdConfiguration = new CPDConfiguration( minimumTokens, new JavaLanguage( p ), encoding );
+            CPDConfiguration cpdConfiguration = new CPDConfiguration();
+	    cpdConfiguration.setMinimumTileSize(minimumTokens);
+	    cpdConfiguration.setLanguage(CPDConfiguration.getLanguageFromString(language));
+	    cpdConfiguration.setIgnoreLiterals(ignoreLiterals);
+	    cpdConfiguration.setIgnoreIdentifiers(ignoreIdentifiers);
+	    cpdConfiguration.setIgnoreAnnotations(ignoreAnnotations);
+	    cpdConfiguration.setSkipDuplicates(skipDuplicates);
+	    cpdConfiguration.setSourceEncoding(encoding);
+	    cpdConfiguration.setURI(uri);
             cpd = new CPD( cpdConfiguration );
 
             for ( File file : files.keySet() )
             {
+					     
+                System.out.println("CPD: adding"+file.getAbsolutePath());
                 cpd.add( file );
             }
         }
@@ -189,6 +238,32 @@ public class CpdReport
         {
             throw new MavenReportException( e.getMessage(), e );
         }
+
+	//Add any source code from the specified database if specified
+        if (null != uri && !"".equals(uri) ) 
+        {
+		try
+		{
+			DBURI dbURI = new DBURI(uri);
+			File sourceRoot = new File ("/Database");
+			//cpd.add(dbURI); - Cannot do this because we have to add the faux-file to files 
+			for (SourceCode sourceCode: cpd.getSourceCodeFor(dbURI))
+			{
+					files.put(new File(sourceCode.getFileName()), new PmdFileInfo( project, sourceRoot, null )  ) ;
+					cpd.add(sourceCode);
+			}
+			
+		}
+		catch (URISyntaxException ex) 
+		{
+			throw new MavenReportException( "Invalid DBURI format - \""+uri+"\"", ex );
+		} 
+		catch (Exception ex) 
+		{
+			throw new MavenReportException( "Problem adding DBURI - \""+uri+"\"",  ex );
+		}
+	}
+
         cpd.go();
 
         CpdReportGenerator gen = new CpdReportGenerator( getSink(), files, getBundle( locale ), aggregate );
