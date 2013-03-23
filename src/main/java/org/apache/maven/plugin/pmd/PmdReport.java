@@ -67,6 +67,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.sourceforge.pmd.PMDException;
+import net.sourceforge.pmd.util.datasource.ReaderDataSource;
 
 /**
  * Creates a PMD report.
@@ -79,6 +80,9 @@ import net.sourceforge.pmd.PMDException;
 public class PmdReport
     extends AbstractPmdReport
 {
+
+     private static final Logger LOG = Logger.getLogger(PmdReport.class.getName());
+     
     /**
      * The target JDK to analyze based on. Should match the target used in the compiler plugin. Valid values are
      * currently <code>1.3</code>, <code>1.4</code>, <code>1.5</code>, <code>1.6</code> and <code>1.7</code>.
@@ -303,7 +307,23 @@ public class PmdReport
 	{
 		try 
 		{
-		    dataSources.addAll(PMD.getURIDataSources(uri));
+		    File sourceRoot = new File ("/Database");
+		    List<DataSource> uriDataSources = PMD.getURIDataSources(uri);
+		    dataSources.addAll(uriDataSources);
+
+		    //Record as files to prevent the PmdReportListener complaining
+		    for (DataSource dataSource: uriDataSources)
+		    {
+			    try {
+				    files.put( new File(((ReaderDataSource) dataSource).getDataSourceName()) , new PmdFileInfo(project, sourceRoot, null) );
+			    }
+			    catch (IOException ex) {
+				    throw new MavenReportException ("Problem processing DataSource "+ dataSource.getNiceFileName(false, "boilerPlate") , ex );
+			    }
+			    catch (ClassCastException ex) {
+				    throw new MavenReportException ("Problem processing DataSource ("+ dataSource.getClass().getCanonicalName()+") - "+dataSource.getNiceFileName(false, "boilerPlate") , ex );
+			    }
+		    }
 		}
 		catch(PMDException pmdE)
 		{
