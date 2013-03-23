@@ -225,8 +225,6 @@ public class CpdReport
 
             for ( File file : files.keySet() )
             {
-					     
-                System.out.println("CPD: adding"+file.getAbsolutePath());
                 cpd.add( file );
             }
         }
