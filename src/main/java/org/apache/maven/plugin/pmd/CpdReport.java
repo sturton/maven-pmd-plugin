@@ -244,11 +244,11 @@ public class CpdReport
 		{
 			DBURI dbURI = new DBURI(uri);
 			File sourceRoot = new File ("/Database");
-			//cpd.add(dbURI); - Cannot do this because we have to add the faux-file to files 
-			for (SourceCode sourceCode: cpd.getSourceCodeFor(dbURI))
+			cpd.add(dbURI); 
+			
+                        for (String source: cpd.getSources())
 			{
-					files.put(new File(sourceCode.getFileName()), new PmdFileInfo( project, sourceRoot, null )  ) ;
-					cpd.add(sourceCode);
+				files.put(new File(source), new PmdFileInfo( project, sourceRoot, null )  ) ;
 			}
 			
 		}
