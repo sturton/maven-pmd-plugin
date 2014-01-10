@@ -246,9 +246,9 @@ public class CpdReport
 			File sourceRoot = new File ("/Database");
 			cpd.add(dbURI); 
 			
-                        for (String source: cpd.getSourcePaths())
+                        for (SourceCode source: cpd.getSources())
 			{
-				files.put(new File(source), new PmdFileInfo( project, sourceRoot, null )  ) ;
+				files.put(new File(source.getFileName()), new PmdFileInfo( project, sourceRoot, null )  ) ;
 			}
 			
 		}
